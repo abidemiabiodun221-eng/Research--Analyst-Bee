@@ -7,20 +7,12 @@ import io
 # Page Setup & Branding Style
 st.set_page_config(page_title="Research Analyst Bee", layout="wide")
 
-# Custom Professional Branding Header with Updated Author
-st.markdown("""
-    <div style="background-color:#0d47a1;padding:20px;border-radius:10px;text-align:center;">
-        <h1 style="color:white;margin:0;">🐝 Research Analyst Bee</h1>
-        <p style="color:#e3f2fd;font-size:16px;margin:5px 0 0 0;">
-            Advanced Academic Automation Engine & Statistical Modeling Suite
-        </p>
-        <div style="margin-top:10px; border-top:1px solid #42a5f5; padding-top:5px;">
-            <span style="color:#fff; font-weight:bold;">Designed & Engineered by:</span> 
-            <span style="color:#ffca28; font-weight:bold;">Ajayi, I.A.</span> | 
-            <span style="color:#e3f2fd;">Department of Public Administration Frameworks</span>
-        </div>
-    </div>
-""", unsafe_content_allowed=True)
+# Error-Free Native Streamlit Branding Header
+st.title("📊 Research Analyst Bee")
+st.subheader("Advanced Academic Automation Engine & Statistical Modeling Suite")
+
+# Clean, Unbreakable Professional Author Banner
+st.info("💡 **System Verification:** Designed & Engineered by **Ajayi, I.A.** | Department of Public Administration Frameworks")
 
 st.write("\n")
 
