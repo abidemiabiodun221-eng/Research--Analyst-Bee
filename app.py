@@ -7,12 +7,12 @@ import io
 # Page Setup & Branding Style
 st.set_page_config(page_title="Research Analyst Bee", layout="wide")
 
-# Native Streamlit Branding Header
+# Native Streamlit Branding Header - 100% Error-Proof
 st.title("📊 Research Analyst Bee")
 st.subheader("Advanced Academic Automation Engine & Statistical Modeling Suite")
 
-# Professional Author Banner
-st.info("💡 **System Verification:** Designed & Engineered by **Ajayi, I.A.** | Department of Public Administration Frameworks")
+# Clean Native System Verification Banner
+st.success("💡 **System Verification:** Designed & Engineered by **Ajayi, I.A.** | Department of Public Administration Frameworks")
 
 st.write("\n")
 
@@ -139,11 +139,12 @@ if df is not None:
         st.bar_chart(c_df)
         
         # Dynamic Academic Interpretation Engine
-        highest_idx = res_df['_comb'].idxmax()
-        highest_row = res_df.loc[highest_idx]
-        st.markdown(f"**Interpretation (Academic Insight):**")
-        st.write(f"Analysis reveals that under this framework, *'{highest_row['Variables']}'* recorded the most significant impact with a combined agreement metric of {highest_row['_comb']}%. This implies a vital structural focus point for the institution's administrative team.")
-        st.markdown("<br>", unsafe_content_allowed=True)
+        if not res_df.empty:
+            highest_idx = res_df['_comb'].idxmax()
+            highest_row = res_df.loc[highest_idx]
+            st.markdown(f"**Interpretation (Academic Insight):**")
+            st.write(f"Analysis reveals that under this framework, *'{highest_row['Variables']}'* recorded the most significant impact with a combined agreement metric of {highest_row['_comb']}%. This implies a vital structural focus point for the institution's administrative team.")
+        st.write("\n")
         
         # Save structural computations for docx generation
         report_tables[f"Table 4.1.{table_index}"] = res_df
@@ -236,9 +237,6 @@ if df is not None:
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
 
-st.markdown("""
-    <hr style="border:0.5px solid #e0e0e0;">
-    <div style="text-align:center; color:#9e9e9e; font-size:12px;">
-        Research Analyst Bee Platform Core Engine • Standard Compliance Distribution Framework v2.0
-    </div>
-""", unsafe_content_allowed=True)
+# Clean, Native Markdown Footer
+st.markdown("---")
+st.caption("Research Analyst Bee Platform Core Engine • Standard Compliance Distribution Framework v2.0")
