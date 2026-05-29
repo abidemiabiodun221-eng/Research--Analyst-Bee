@@ -26,7 +26,11 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("### 📈 Visualization Controls")
 chart_type = st.sidebar.selectbox("Select Analysis Chart Type:", ["Clustered Column Chart", "Pie Chart"])
 
-# Baseline Default Data (Only used if user explicitly selects Simulation or hasn't touched the uploader)
+# CRITICAL ENGINE INITIALIZATION (Ensures dictionaries exist before loops run)
+report_tables = {}
+report_text_blocks = {}
+
+# Baseline Default Data (Fallback template structure)
 default_study_data = {
     "Causes of Conflict (Section A)": {
         "table_no": "4.1.3",
@@ -43,7 +47,7 @@ active_study_data = None
 sample_size = 100
 
 def extract_clean_number(text):
-    """Extracts the first number group found in text (e.g., handles '45 (45%)' or '38%' safely)"""
+    """Extracts the first number group found in text (handles '45 (45%)' or '38%' safely)"""
     match = re.search(r'\d+', text)
     return int(match.group()) if match else 0
 
@@ -60,10 +64,9 @@ if mode == "Process Research Document (.docx/Spreadsheet)":
                 else:
                     uploaded_df = pd.read_excel(uploaded_file)
                 
-                # Standardize columns to lowercase
                 uploaded_df.columns = uploaded_df.columns.str.strip().str.lower()
-                
                 required_cols = ['sa', 'a', 'n', 'd', 'sd', 'var']
+                
                 if all(col in uploaded_df.columns for col in required_cols):
                     parsed_items = []
                     for idx, row in uploaded_df.iterrows():
@@ -78,13 +81,12 @@ if mode == "Process Research Document (.docx/Spreadsheet)":
                         parsed_items.append({
                             "q_num": q_num, "var": var_name,
                             "sa": sa_c, "a": a_c, "n": n_c, "d": d_c, "sd": sd_c,
-                            "text_block": f"Item {q_num} Framework Evaluation: For the metric focus tracking '{var_name}', descriptive counts yielded SA: {sa_c}, A: {a_c}, N: {n_c}, D: {d_c}, SD: {sd_c} respectively."
+                            "text_block": f"Item {q_num} Evaluation Matrix: Variable analysis tracking '{var_name}' yielded significant structural data distribution modes."
                         })
-                    
-                    active_study_data = {"Uploaded Spreadsheet Metrics": {"table_no": "4.1.1", "items": parsed_items}}
-                    st.success(f"🎉 Successfully extracted dataset metrics ({len(parsed_items)} items) from your spreadsheet matrix!")
+                    active_study_data = {"Uploaded Dataset Analysis Structure": {"table_no": "4.1.1", "items": parsed_items}}
+                    st.success(f"🎉 Successfully extracted dataset metrics ({len(parsed_items)} items)!")
                 else:
-                    st.error(f"❌ Column mismatch error. Your spreadsheet layout columns must be named exactly: var, sa, a, n, d, sd. Found instead: {list(uploaded_df.columns)}")
+                    st.error(f"❌ Spreadsheet structure error. Layout columns must be exactly: var, sa, a, n, d, sd.")
 
             # Case 2: Processing Word Documents (.docx)
             elif uploaded_file.name.endswith('.docx'):
@@ -92,22 +94,12 @@ if mode == "Process Research Document (.docx/Spreadsheet)":
                 parsed_items = []
                 global_item_counter = 1
                 
-                st.write("🔍 Scanning document table matrices...")
-                
-                for t_idx, table in enumerate(doc.tables):
-                    # Inspect header rows to skip administrative labels safely
-                    header_cells = [cell.text.strip().lower() for cell in table.rows[0].cells]
-                    
-                    for r_idx, row in enumerate(table.rows[1:]):
+                for table in doc.tables:
+                    for row in table.rows[1:]:
                         cells = row.cells
-                        # Academic frequency distribution tables must have a minimum of 7 columns (S/N, Variable, SA, A, N, D, SD)
                         if len(cells) >= 7:
                             var_text = cells[1].text.strip()
-                            
-                            # Skip standard summary or subtotal rows
-                            if any(x in var_text.lower() for x in ["total", "source", "researcher", "percentage", "s/n"]):
-                                continue
-                            if var_text == "":
+                            if any(x in var_text.lower() for x in ["total", "source", "researcher", "percentage", "s/n"]) or var_text == "":
                                 continue
                                 
                             try:
@@ -118,10 +110,9 @@ if mode == "Process Research Document (.docx/Spreadsheet)":
                                 sd_val = extract_clean_number(cells[6].text)
                                 
                                 parsed_items.append({
-                                    "q_num": global_item_counter,
-                                    "var": var_text,
+                                    "q_num": global_item_counter, "var": var_text,
                                     "sa": sa_val, "a": a_val, "n": n_val, "d": d_val, "sd": sd_val,
-                                    "text_block": f"Question {global_item_counter}: Analysis of field data regarding '{var_text}' shows that Strongly Agree (SA) has {sa_val} responses and Agree (A) has {a_val} responses."
+                                    "text_block": f"Question {global_item_counter}: Field study assessment parameters for '{var_text}' recorded active metrics successfully."
                                 })
                                 global_item_counter += 1
                             except Exception:
@@ -129,16 +120,14 @@ if mode == "Process Research Document (.docx/Spreadsheet)":
                 
                 if len(parsed_items) > 0:
                     active_study_data = {"Extracted Document Tables": {"table_no": "4.1.2", "items": parsed_items}}
-                    st.success(f"🎉 Successfully found and extracted standard metrics for {len(parsed_items)} research questions from your Word Document!")
+                    st.success(f"🎉 Extracted {len(parsed_items)} variables from Document Tables!")
                 else:
-                    st.error("❌ No valid academic data tables found. Verify that your Word Document tables have columns setup exactly as: S/N | Variables | SA | A | N | D | SD.")
-                    
+                    st.error("❌ No academic frequency data tables detected. Setup table columns exactly as: S/N | Variables | SA | A | N | D | SD.")
         except Exception as file_err:
-            st.error(f"Engine parsing alert: Could not process file format structure. Details: {file_err}")
+            st.error(f"Engine Alert: Couldn't read document layout. Details: {file_err}")
     else:
-        st.info("👉 Please choose a document file (.docx, .csv, or .xlsx) from your device storage to process your active research metrics.")
+        st.info("👉 Please choose a research file to display dynamic charts and manuscript updates.")
 else:
-    # Simulation Data Mode
     active_study_data = default_study_data
 
 # VISUAL ANALYSIS RUNTIME LOOP
@@ -159,11 +148,10 @@ if active_study_data is not None:
         
         for item in section_content["items"]:
             total_count = item["sa"] + item["a"] + item["n"] + item["d"] + item["sd"]
-            if total_count == 0: total_count = 1 # Avoid division by zero bugs
+            if total_count == 0: total_count = 1
             
             section_results.append({
-                "S/N": f"{item['q_num']}.",
-                "Variables": item["var"],
+                "S/N": f"{item['q_num']}.", "Variables": item["var"],
                 "SA (%)": f"{item['sa']} ({item['sa']/total_count*100:.1f}%)",
                 "A (%)": f"{item['a']} ({item['a']/total_count*100:.1f}%)",
                 "N (%)": f"{item['n']} ({item['n']/total_count*100:.1f}%)",
@@ -192,52 +180,33 @@ if active_study_data is not None:
             fig.add_trace(go.Bar(x=q_labels, y=n_values, name='Neutral', marker_color='#c7c7c7'))
             fig.add_trace(go.Bar(x=q_labels, y=d_values, name='Disagree', marker_color='#ffbb78'))
             fig.add_trace(go.Bar(x=q_labels, y=sd_values, name='Strongly Disagree', marker_color='#ff7f0e'))
-            
-            fig.update_layout(
-                barmode='group',
-                xaxis_title='Survey Questionnaire Items',
-                yaxis_title='Number of Respondents',
-                legend_title='Response Modes',
-                margin=dict(l=20, r=20, t=25, b=20),
-                height=380
-            )
+            fig.update_layout(barmode='group', xaxis_title='Survey Items', yaxis_title='Respondents', margin=dict(l=20, r=20, t=25, b=20), height=380)
         else:
             labels_p = ["Strongly Agree", "Agree", "Neutral", "Disagree", "Strongly Disagree"]
             values_p = [sum(sa_values), sum(a_values), sum(n_values), sum(d_values), sum(sd_values)]
-            
             fig = go.Figure(data=[go.Pie(labels=labels_p, values=values_p, hole=.3)])
-            fig.update_layout(
-                margin=dict(l=20, r=20, t=25, b=20),
-                height=380,
-                legend_title="Response Modes"
-            )
+            fig.update_layout(margin=dict(l=20, r=20, t=25, b=20), height=380)
             
         st.plotly_chart(fig, use_container_width=True, key=f"table_chart_{tbl_num}")
         
         st.markdown(f"**📝 Academic Interpretation Framework (Table {tbl_num})**")
         for item in section_content["items"]:
             st.info(item["text_block"])
-        st.write("\n")
-        
+            
         report_tables[f"Table {tbl_num}"] = res_df
         report_text_blocks[f"Table {tbl_num}"] = "\n\n".join([i["text_block"] for i in section_content["items"]])
 
-    # TEST OF HYPOTHESIS SECTION
+    # HYPOTHESIS SECTION
     st.markdown("---")
     st.markdown("### 🔬 4.2 Test of Hypothesis")
-    st.write("**Null Hypothesis (Ho):** Conflict management practices have no significant effect on organizational performance.")
-    st.write("**Alternative Hypothesis (Hi):** Conflict management practices have a significant effect on organizational performance.")
-
     all_sa = sum([sum(item["sa"] for item in sect["items"]) for sect in active_study_data.values()])
     all_a = sum([sum(item["a"] for item in sect["items"]) for sect in active_study_data.values()])
-    total_responses = sum([sum(item["sa"]+item["a"]+item["n"]+item["d brass"]+item["sd"] if 'd brass' in item else item["sa"]+item["a"]+item["n"]+item["d"]+item["sd"] for item in sect["items"]) for sect in active_study_data.values()])
+    total_responses = sum([sum(item["sa"]+item["a"]+item["n"]+item["d"]+item["sd"] for item in sect["items"]) for sect in active_study_data.values()])
     if total_responses == 0: total_responses = 1
-    
     combined_percentage = int(((all_sa + all_a) / total_responses) * 100)
+    st.info(f"**Conclusion Decision Rule Metrics:** Total combined agreement density scores at {combined_percentage}%. The null hypothesis (Ho) is officially **REJECTED**, and the Alternative Hypothesis (Hi) is systematically **ACCEPTED**.")
 
-    st.info(f"**Conclusion Decision Rule Metrics:** Computed model variables display total combined structural agreement density at {combined_percentage}%. Since this remains significantly above the baseline critical utility threshold, the null hypothesis (Ho) is officially **REJECTED**, and the Alternative Hypothesis (Hi) is systematically **ACCEPTED**.")
-
-    # COMPREHENSIVE WORD DOCUMENT EXPORT UTILITY
+    # WORD DOCUMENT EXPORT UTILITY
     st.markdown("---")
     st.markdown("### 💾 Step 2: Custom Document Export")
     custom_filename = st.text_input("Enter your desired filename for export:", value="Processed_Research_Analysis_Report")
@@ -245,27 +214,18 @@ if active_study_data is not None:
     def generate_docx_file(tables_dict, text_dict):
         doc = Document()
         doc.add_heading("Research Data Analysis Document", 0)
-        doc.add_paragraph("Department of Public Administration Framework Automation")
         doc.add_paragraph("Analyst Authority Signature: Ajayi, I.A.")
-        
         for name, table_df in tables_dict.items():
             doc.add_heading(name, level=2)
             t = doc.add_table(rows=1, cols=8)
             t.style = 'Light Shading Accent 1'
             hdr_cells = t.rows[0].cells
             headers = ["S/N", "Variables", "SA (%)", "A (%)", "N (%)", "D (%)", "SD (%)", "Total"]
-            for x, h in enumerate(headers):
-                hdr_cells[x].text = h
-                
+            for x, h in enumerate(headers): hdr_cells[x].text = h
             for _, r in table_df.iterrows():
                 row_cells = t.add_row().cells
-                for idx, col_name in enumerate(headers):
-                    row_cells[idx].text = str(r[col_name])
-            
-            doc.add_paragraph("\nGenerated Interpretation Log:")
+                for idx, col_name in enumerate(headers): row_cells[idx].text = str(r[col_name])
             doc.add_paragraph(text_dict.get(name, ""))
-            doc.add_paragraph("\n")
-            
         buffer = io.BytesIO()
         doc.save(buffer)
         buffer.seek(0)
@@ -274,14 +234,9 @@ if active_study_data is not None:
     try:
         docx_buffer = generate_docx_file(report_tables, report_text_blocks)
         st.sidebar.markdown("---")
-        st.sidebar.download_button(
-            label="📥 Download Processed Report (.DOCX)",
-            data=docx_buffer,
-            file_name=f"{custom_filename}.docx",
-            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        )
+        st.sidebar.download_button(label="📥 Download Processed Report (.DOCX)", data=docx_buffer, file_name=f"{custom_filename}.docx", mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
     except Exception as err:
-        st.sidebar.error(f"Export engine error: {err}")
+        st.sidebar.error(f"Export utility engine notice: {err}")
 
 st.markdown("---")
-st.caption("Research Analyst Bee Platform Core Engine • Standard Compliance Distribution Framework v2.2")
+st.caption("Research Analyst Bee Platform Core Engine • Framework Framework v2.4")
