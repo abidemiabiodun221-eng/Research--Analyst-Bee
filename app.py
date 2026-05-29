@@ -21,6 +21,10 @@ st.write("\n")
 st.sidebar.markdown("### ⚙️ System Controls")
 mode = st.sidebar.radio("Data Intake Method:", ["Process Research Document (.docx/Spreadsheet)", "Simulate Assumption Data"])
 
+st.sidebar.markdown("---")
+st.sidebar.markdown("### 📈 Visualization Controls")
+chart_type = st.sidebar.selectbox("Select Analysis Chart Type:", ["Clustered Column Chart", "Pie Chart"])
+
 # Balanced 5-Option empirical metrics structure (n=100)
 study_data = {
     "Causes of Conflict (Section A)": {
@@ -150,6 +154,12 @@ if df_active:
         st.markdown(f"#### 📑 Table {tbl_num}: Distribution of responses on {section_title.lower()}")
         
         section_results = []
+        q_labels = []
+        sa_values = []
+        a_values = []
+        n_values = []
+        d_values = []
+        sd_values = []
         
         for item in section_content["items"]:
             total_count = item["sa"] + item["a"] + item["n"] + item["d"] + item["sd"]
@@ -165,42 +175,55 @@ if df_active:
                 "Total": f"{total_count} (100.0%)"
             })
             
+            q_labels.append(f"Item {item['q_num']}")
+            sa_values.append(item["sa"])
+            a_values.append(item["a"])
+            n_values.append(item["n"])
+            d_values.append(item["d"])
+            sd_values.append(item["sd"])
+            
         res_df = pd.DataFrame(section_results)
         st.dataframe(res_df, use_container_width=True)
         st.caption("Source: Researcher's survey, 2026")
         
-        # Display individual clustered charts and text right below each query item
-        for item in section_content["items"]:
-            st.markdown(f"**📊 Visual Representation for Questionnaire Item {item['q_num']}**")
-            st.caption(f"Variable: *{item['var']}*")
-            
-            categories = ["Strongly Agree", "Agree", "Neutral", "Disagree", "Strongly Disagree"]
-            values = [item["sa"], item["a"], item["n"], item["d"], item["sd"]]
-            
+        st.markdown(f"**Visual Representation ({chart_type}) - Table {tbl_num}**")
+        
+        if chart_type == "Clustered Column Chart":
             fig = go.Figure()
-            fig.add_trace(go.Bar(
-                x=categories, 
-                y=values,
-                text=[f"{v} ({v}%)" for v in values],
-                textposition='auto',
-                marker_color=['#1f77b4', '#aec7e8', '#c7c7c7', '#ffbb78', '#ff7f0e']
-            ))
+            fig.add_trace(go.Bar(x=q_labels, y=sa_values, name='Strongly Agree', marker_color='#1f77b4'))
+            fig.add_trace(go.Bar(x=q_labels, y=a_values, name='Agree', marker_color='#aec7e8'))
+            fig.add_trace(go.Bar(x=q_labels, y=n_values, name='Neutral', marker_color='#c7c7c7'))
+            fig.add_trace(go.Bar(x=q_labels, y=d_values, name='Disagree', marker_color='#ffbb78'))
+            fig.add_trace(go.Bar(x=q_labels, y=sd_values, name='Strongly Disagree', marker_color='#ff7f0e'))
             
             fig.update_layout(
-                xaxis_title="Scale Options",
-                yaxis_title="Response Volume Count",
-                margin=dict(l=20, r=20, t=15, b=20),
-                height=280,
+                barmode='group',
+                xaxis_title='Survey Questionnaire Items',
+                yaxis_title='Number of Respondents',
+                legend_title='Response Modes',
+                margin=dict(l=20, r=20, t=25, b=20),
+                height=380,
                 yaxis=dict(range=[0, 70])
             )
+        else:
+            # Consolidating total response counts under the table metrics into a Section Pie chart view
+            labels_p = ["Strongly Agree", "Agree", "Neutral", "Disagree", "Strongly Disagree"]
+            values_p = [sum(sa_values), sum(a_values), sum(n_values), sum(d_values), sum(sd_values)]
             
-            # FIXED: Added custom key argument so that every generated plot is distinct
-            st.plotly_chart(fig, use_container_width=True, key=f"chart_item_{item['q_num']}")
+            fig = go.Figure(data=[go.Pie(labels=labels_p, values=values_p, hole=.3)])
+            fig.update_layout(
+                margin=dict(l=20, r=20, t=25, b=20),
+                height=380,
+                legend_title="Response Modes"
+            )
             
-            st.markdown(f"**📝 Academic Interpretation (Item {item['q_num']})**")
+        st.plotly_chart(fig, use_container_width=True, key=f"table_chart_{tbl_num}")
+        
+        st.markdown(f"**📝 Academic Interpretation Framework (Table {tbl_num})**")
+        for item in section_content["items"]:
             st.info(item["text_block"])
-            st.write("\n")
-            
+        st.write("\n")
+        
         report_tables[f"Table {tbl_num}"] = res_df
         report_text_blocks[f"Table {tbl_num}"] = "\n\n".join([i["text_block"] for i in section_content["items"]])
 
