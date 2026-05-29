@@ -154,7 +154,6 @@ if df_active:
         for item in section_content["items"]:
             total_count = item["sa"] + item["a"] + item["n"] + item["d"] + item["sd"]
             
-            # Format rows perfectly for the main data frames
             section_results.append({
                 "S/N": f"{item['q_num']}.",
                 "Variables": item["var"],
@@ -175,11 +174,9 @@ if df_active:
             st.markdown(f"**📊 Visual Representation for Questionnaire Item {item['q_num']}**")
             st.caption(f"Variable: *{item['var']}*")
             
-            # Formulating 5-Likert Response Array Categories
             categories = ["Strongly Agree", "Agree", "Neutral", "Disagree", "Strongly Disagree"]
             values = [item["sa"], item["a"], item["n"], item["d"], item["sd"]]
             
-            # Build clustered column graph standalone per response track
             fig = go.Figure()
             fig.add_trace(go.Bar(
                 x=categories, 
@@ -196,7 +193,9 @@ if df_active:
                 height=280,
                 yaxis=dict(range=[0, 70])
             )
-            st.plotly_chart(fig, use_container_width=True)
+            
+            # FIXED: Added custom key argument so that every generated plot is distinct
+            st.plotly_chart(fig, use_container_width=True, key=f"chart_item_{item['q_num']}")
             
             st.markdown(f"**📝 Academic Interpretation (Item {item['q_num']})**")
             st.info(item["text_block"])
