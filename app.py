@@ -7,11 +7,11 @@ import io
 # Page Setup & Branding Style
 st.set_page_config(page_title="Research Analyst Bee", layout="wide")
 
-# Error-Free Native Streamlit Branding Header
+# Native Streamlit Branding Header
 st.title("📊 Research Analyst Bee")
 st.subheader("Advanced Academic Automation Engine & Statistical Modeling Suite")
 
-# Clean, Unbreakable Professional Author Banner
+# Professional Author Banner
 st.info("💡 **System Verification:** Designed & Engineered by **Ajayi, I.A.** | Department of Public Administration Frameworks")
 
 st.write("\n")
@@ -68,13 +68,11 @@ else:
     np.random.seed(42) 
     mock_data = {}
     options = ["Strongly Agree", "Agree", "Strongly Disagree", "Disagree"]
-    
-    # Weight matrices structured to automatically align with your high agreement results
     weights = [0.48, 0.40, 0.07, 0.05] 
     
     for section, vars_list in variables_dict.items():
         for var in vars_list:
-            mock_data[var] = np.random.choice(options, size=sample_size, p=weights)
+            mock_data[var] = np.random.choice(options, size=int(sample_size), p=weights)
             
     df = pd.DataFrame(mock_data)
     st.info(f"System operating on simulated assumption framework modeled for N={sample_size} respondents.")
@@ -91,22 +89,23 @@ if df is not None:
         st.markdown(f"### 📑 Table 4.1.{table_index}: Distribution of responses on {section_title.lower()}")
         
         section_results = []
-        chart_data = {}
+        chart_records = []
         
         for i, q in enumerate(queries, 1):
             if q in df.columns:
                 counts = df[q].value_counts().reindex(["Strongly Agree", "Agree", "Strongly Disagree", "Disagree"], fill_value=0)
                 total = counts.sum()
                 
-                # Transform to counts and raw percentages string format matching your paper
-                sa_pct = f"{counts['Strongly Agree']} ({round((counts['Strongly Agree']/total)*100)}%)"
-                a_pct = f"{counts['Agree']} ({round((counts['Agree']/total)*100)}%)"
-                sd_pct = f"{counts['Strongly Disagree']} ({round((counts['Strongly Disagree']/total)*100)}%)"
-                d_pct = f"{counts['Disagree']} ({round((counts['Disagree']/total)*100)}%)"
-                tot_str = f"{total} (100%)"
+                sa_pct_val = round((counts['Strongly Agree']/total)*100) if total > 0 else 0
+                a_pct_val = round((counts['Agree']/total)*100) if total > 0 else 0
+                sd_pct_val = round((counts['Strongly Disagree']/total)*100) if total > 0 else 0
+                d_pct_val = round((counts['Disagree']/total)*100) if total > 0 else 0
                 
-                sa_val = round((counts['Strongly Agree']/total)*100)
-                a_val = round((counts['Agree']/total)*100)
+                sa_pct = f"{counts['Strongly Agree']} ({sa_pct_val}%)"
+                a_pct = f"{counts['Agree']} ({a_pct_val}%)"
+                sd_pct = f"{counts['Strongly Disagree']} ({sd_pct_val}%)"
+                d_pct = f"{counts['Disagree']} ({d_pct_val}%)"
+                tot_str = f"{total} (100%)"
                 
                 section_results.append({
                     "S/N": f"{i}.",
@@ -116,23 +115,32 @@ if df is not None:
                     "SD (%)": sd_pct,
                     "D (%)": d_pct,
                     "Total": tot_str,
-                    "_SA_val": sa_val,
-                    "_A_val": a_val,
-                    "_comb": sa_val + a_val
+                    "_SA_val": sa_pct_val,
+                    "_A_val": a_pct_val,
+                    "_comb": sa_pct_val + a_pct_val
                 })
-                chart_data[q[:40] + "..."] = [sa_val, a_val, round((counts['Strongly Disagree']/total)*100), round((counts['Disagree']/total)*100)]
+                
+                # Format labels securely for the chart index
+                chart_records.append({
+                    "Variable": f"Item {i}",
+                    "SA": sa_pct_val,
+                    "A": a_pct_val,
+                    "SD": sd_pct_val,
+                    "D": d_pct_val
+                })
         
         res_df = pd.DataFrame(section_results)
         display_df = res_df.drop(columns=["_SA_val", "_A_val", "_comb"])
         st.dataframe(display_df, use_container_width=True)
         
-        # Display the Bar Chart as specified in your layout plan
+        # Safe Bar Chart Generation using structured records
         st.markdown("**Visual Distribution Chart (%)**")
-        chart_df = pd.DataFrame(chart_data, index=["SA", "A", "SD", "D"]).T
-        st.bar_chart(chart_df)
+        c_df = pd.DataFrame(chart_records).set_index("Variable")
+        st.bar_chart(c_df)
         
         # Dynamic Academic Interpretation Engine
-        highest_row = res_df.loc[res_df['_comb'].idxmax()]
+        highest_idx = res_df['_comb'].idxmax()
+        highest_row = res_df.loc[highest_idx]
         st.markdown(f"**Interpretation (Academic Insight):**")
         st.write(f"Analysis reveals that under this framework, *'{highest_row['Variables']}'* recorded the most significant impact with a combined agreement metric of {highest_row['_comb']}%. This implies a vital structural focus point for the institution's administrative team.")
         st.markdown("<br>", unsafe_content_allowed=True)
@@ -148,10 +156,10 @@ if df is not None:
     st.write("**Alternative Hypothesis (Hi):** Conflict management practices have a significant effect on organizational performance.")
     
     # Process Section C (Effects) variables dynamically for the core hypothesis test
-    effects_data = report_tables.get("Table 4.1.5", [])
+    effects_data = report_tables.get("Table 4.1.5", pd.DataFrame())
     hypo_records = []
     
-    if len(effects_data) > 0:
+    if not effects_data.empty:
         for idx, row in effects_data.iterrows():
             comb_pct = row["_SA_val"] + row["_A_val"]
             decision = "Significant" if comb_pct >= 50 else "Not Significant"
@@ -165,7 +173,7 @@ if df is not None:
             })
             
         hypo_df = pd.DataFrame(hypo_records)
-        st.markdown("**Table 4.3.3: Distribution of responses on effect of conflict management (Hypothesis Testing)**")
+        st.markdown("**Table 4.3.3: Distribution of responses on effect of conflict management on organizational performance (Hypothesis Testing)**")
         st.dataframe(hypo_df.drop(columns=["_raw_comb"]), use_container_width=True)
         
         # Determine global structural decision text dynamically based on actual scores
@@ -176,6 +184,8 @@ if df is not None:
             final_conclusion = "ACCEPTED. Therefore, the alternative hypothesis (Hi) is rejected."
             
         st.info(f"**Conclusion Decision Rule:** Since the calculated indicators score consistently above the 50% majority threshold, the null hypothesis (Ho) is officially **{final_conclusion}**")
+    else:
+        final_conclusion = "Data pending processing."
 
     # CUSTOM FILE RENAMING AND DOWNLOAD EXPORT ARCHITECTURE
     st.markdown("---")
@@ -216,15 +226,15 @@ if df is not None:
         buffer.seek(0)
         return buffer
 
-    docx_file = generate_docx_buffer(report_tables, sample_size, final_conclusion)
-    
-    st.sidebar.markdown("---")
-    st.sidebar.download_button(
-        label="📥 Download Report (.DOCX)",
-        data=docx_file,
-        file_name=f"{custom_filename}.docx",
-        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    )
+    if not effects_data.empty:
+        docx_file = generate_docx_buffer(report_tables, sample_size, final_conclusion)
+        st.sidebar.markdown("---")
+        st.sidebar.download_button(
+            label="📥 Download Report (.DOCX)",
+            data=docx_file,
+            file_name=f"{custom_filename}.docx",
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
 
 st.markdown("""
     <hr style="border:0.5px solid #e0e0e0;">
@@ -232,4 +242,3 @@ st.markdown("""
         Research Analyst Bee Platform Core Engine • Standard Compliance Distribution Framework v2.0
     </div>
 """, unsafe_content_allowed=True)
-            
