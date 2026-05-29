@@ -4,6 +4,7 @@ import numpy as np
 import plotly.graph_objects as go
 from docx import Document
 import io
+import re
 
 # Page Setup & Academic Branding Style
 st.set_page_config(page_title="Research Analyst Bee", layout="wide")
@@ -25,8 +26,14 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("### 📈 Visualization Controls")
 chart_type = st.sidebar.selectbox("Select Analysis Chart Type:", ["Clustered Column Chart", "Pie Chart"])
 
-# Balanced 5-Option empirical metrics structure (n=100)
-study_data = {
+# CRITICAL ENGINE INITIALIZATION (Ensures storage dictionaries exist globally before logic checks)
+report_tables = {}
+report_text_blocks = {}
+active_study_data = None
+sample_size = 100
+
+# Baseline Default Data (Fallback structural template)
+default_study_data = {
     "Causes of Conflict (Section A)": {
         "table_no": "4.1.3",
         "items": [
@@ -93,7 +100,7 @@ study_data = {
             {
                 "q_num": 11, "var": "Poor conflict management reduces organizational performance", 
                 "sa": 55, "a": 38, "n": 0, "d": 4, "sd": 3,
-                "text_block": "Question 11: Concerning whether poor conflict management reduces organizational performance, 55 (55.0%) Strongly Agreed and 38 (38.0%) Agreed, totaling 93 (93.0%). Only 7 (7.0%) disagreed or strongly disagreed. This is the highest level of agreement in this section. This indicates that letting conflicts fester directly lowers overall performance. It leads to high absenteeism, low dedication, and project delays. This strong 93.0% consensus serves as the foundation for our hypothesis test, leading us to reject the null hypothesis and confirm that conflict management significantly affects performance."
+                "text_block": "Question 11: Concerning whether poor conflict management reduces organizational performance, 55 (55.0%) Strongly Agreed and 38 (38.0%) Agreed, totaling 93 (93.0%). Only 7 (7.0%) disagreed or strongly disagreed. This is the highest level of agreement in this section. This indicates that letting conflicts fester directly lowers overall performance. It leads to high absenteeism, low dedication, and project delays. This strong 93.0% consensus serves as the foundation for our hypothesis test, leading us to reject the null hypothesis and confirm that conflict management systematically affects performance."
             },
             {
                 "q_num": 12, "var": "Conflict management leads to better decision-making", 
@@ -129,27 +136,102 @@ study_data = {
     }
 }
 
-df_active = False
-sample_size = 100
+def extract_clean_number(text):
+    """Safely extracts the first valid sequence of digits found in a row cell string (handles formatting variations like '45 (45%)' or '38%')"""
+    match = re.search(r'\d+', str(text))
+    return int(match.group()) if match else 0
 
+# DYNAMIC FILE PROCESSING PARSING ENGINE
 if mode == "Process Research Document (.docx/Spreadsheet)":
-    uploaded_file = st.file_uploader("Upload Questionnaire Spreadsheet, Word Document, or Data Text File", type=["docx", "csv", "xlsx"])
-    if uploaded_file:
-        df_active = True
-        st.success(f"Successfully processed metrics from '{uploaded_file.name}'!")
-    else:
-        st.info("👉 Please choose a document from your device storage to view the structured analysis charts and manuscript text.")
-else:
-    df_active = True
+    uploaded_file = st.file_uploader("Upload Questionnaire Spreadsheet (.csv/.xlsx) or Word Document (.docx)", type=["docx", "csv", "xlsx"])
+    
+    if uploaded_file is not None:
+        try:
+            # Case 1: Processing Spreadsheets (CSV or Excel formats)
+            if uploaded_file.name.endswith('.csv') or uploaded_file.name.endswith('.xlsx'):
+                if uploaded_file.name.endswith('.csv'):
+                    uploaded_df = pd.read_csv(uploaded_file)
+                else:
+                    uploaded_df = pd.read_excel(uploaded_file)
+                
+                # Standardize data headings to lowercase format to prevent KeyErrors
+                uploaded_df.columns = uploaded_df.columns.str.strip().str.lower()
+                required_cols = ['sa', 'a', 'n', 'd', 'sd', 'var']
+                
+                if all(col in uploaded_df.columns for col in required_cols):
+                    parsed_items = []
+                    for idx, row in uploaded_df.iterrows():
+                        q_num = int(row['q_num']) if 'q_num' in uploaded_df.columns else (idx + 1)
+                        var_name = str(row['var'])
+                        sa_c = extract_clean_number(row['sa'])
+                        a_c = extract_clean_number(row['a'])
+                        n_c = extract_clean_number(row['n'])
+                        d_c = extract_clean_number(row['d'])
+                        sd_c = extract_clean_number(row['sd'])
+                        
+                        parsed_items.append({
+                            "q_num": q_num, "var": var_name,
+                            "sa": sa_c, "a": a_c, "n": n_c, "d": d_c, "sd": sd_c,
+                            "text_block": f"Question {q_num}: Dynamic verification tracking for research parameter focus evaluation block '{var_name}' yielded active fields: SA({sa_c}), A({a_c}), N({n_c}), D({d_c}), SD({sd_c})."
+                        })
+                    
+                    active_study_data = {"Uploaded Dataset Analytics Matrix": {"table_no": "4.1.1", "items": parsed_items}}
+                    st.success(f"🎉 Successfully extracted dataset metrics ({len(parsed_items)} items) from spreadsheet upload!")
+                else:
+                    st.error(f"❌ Structural layout verification mismatch. Document dataset metrics must contain these columns exactly: var, sa, a, n, d, sd. Found: {list(uploaded_df.columns)}")
 
-if df_active:
+            # Case 2: Processing Word Documents (.docx)
+            elif uploaded_file.name.endswith('.docx'):
+                doc = Document(uploaded_file)
+                parsed_items = []
+                global_item_counter = 1
+                
+                for table in doc.tables:
+                    for row in table.rows[1:]:
+                        cells = row.cells
+                        # Ensure row contains the structural sequence layout distribution (S/N, Variable, SA, A, N, D, SD)
+                        if len(cells) >= 7:
+                            var_text = cells[1].text.strip()
+                            
+                            # Skip standard summary, reference labels, or empty records cleanly
+                            if any(x in var_text.lower() for x in ["total", "source", "researcher", "percentage", "s/n"]) or var_text == "":
+                                continue
+                                
+                            try:
+                                sa_val = extract_clean_number(cells[2].text)
+                                a_val = extract_clean_number(cells[3].text)
+                                n_val = extract_clean_number(cells[4].text)
+                                d_val = extract_clean_number(cells[5].text)
+                                sd_val = extract_clean_number(cells[6].text)
+                                
+                                parsed_items.append({
+                                    "q_num": global_item_counter, "var": var_text,
+                                    "sa": sa_val, "a": a_val, "n": n_val, "d": d_val, "sd": sd_val,
+                                    "text_block": f"Question {global_item_counter}: Field study frequency distribution data metrics concerning item focus tracking '{var_text}' recorded active values."
+                                })
+                                global_item_counter += 1
+                            except Exception:
+                                continue
+                
+                if len(parsed_items) > 0:
+                    active_study_data = {"Extracted Document Tables": {"table_no": "4.1.2", "items": parsed_items}}
+                    st.success(f"🎉 Successfully found and compiled metrics for {len(parsed_items)} research questions from Word Document tables!")
+                else:
+                    st.error("❌ No standard academic distribution matrices detected inside document. Verify your file contains tables with headings aligned as: S/N | Variables | SA | A | N | D | SD.")
+        except Exception as file_err:
+            st.error(f"Engine Parsing Exception: Could not unpack file layout structure safely. Details: {file_err}")
+    else:
+        st.info("👉 System idle. Please upload a structured research file (.docx, .csv, or .xlsx) from your device storage to begin processing field metrics.")
+else:
+    # Simulation Data Intake Mode
+    active_study_data = default_study_data
+
+# VISUAL ANALYSIS RUNTIME LOOP
+if active_study_data is not None:
     st.markdown("---")
     st.markdown(f"### 📊 Automated Multi-Dimensional Analysis (Sample Size, n = {sample_size})")
     
-    report_text_blocks = {}
-    report_tables = {}
-    
-    for section_title, section_content in study_data.items():
+    for section_title, section_content in active_study_data.items():
         tbl_num = section_content["table_no"]
         st.markdown(f"#### 📑 Table {tbl_num}: Distribution of responses on {section_title.lower()}")
         
@@ -163,16 +245,17 @@ if df_active:
         
         for item in section_content["items"]:
             total_count = item["sa"] + item["a"] + item["n"] + item["d"] + item["sd"]
+            if total_count == 0: total_count = 1  # Guard against division by zero errors
             
             section_results.append({
                 "S/N": f"{item['q_num']}.",
                 "Variables": item["var"],
-                "SA (%)": f"{item['sa']} ({item['sa']:.1f}%)",
-                "A (%)": f"{item['a']} ({item['a']:.1f}%)",
-                "N (%)": f"{item['n']} ({item['n']:.1f}%)",
-                "D (%)": f"{item['d']} ({item['d']:.1f}%)",
-                "SD (%)": f"{item['sd']} ({item['sd']:.1f}%)",
-                "Total": f"{total_count} (100.0%)"
+                "SA (%)": f"{item['sa']} ({item['sa']/total_count*100:.1f}%)",
+                "A (%)": f"{item['a']} ({item['a']/total_count*100:.1f}%)",
+                "N (%)": f"{item['n']} ({item['n']/total_count*100:.1f}%)",
+                "D (%)": f"{item['d']} ({item['d']/total_count*100:.1f}%)",
+                "SD (%)": f"{item['sd']} ({item['sd']/total_count*100:.1f}%)",
+                "Total": f"{int(total_count)} (100.0%)"
             })
             
             q_labels.append(f"Item {item['q_num']}")
@@ -203,10 +286,9 @@ if df_active:
                 legend_title='Response Modes',
                 margin=dict(l=20, r=20, t=25, b=20),
                 height=380,
-                yaxis=dict(range=[0, 70])
+                yaxis=dict(range=[0, max(max(sa_values), max(a_values)) + 15])
             )
         else:
-            # Consolidating total response counts under the table metrics into a Section Pie chart view
             labels_p = ["Strongly Agree", "Agree", "Neutral", "Disagree", "Strongly Disagree"]
             values_p = [sum(sa_values), sum(a_values), sum(n_values), sum(d_values), sum(sd_values)]
             
@@ -322,4 +404,4 @@ if df_active:
         st.sidebar.error(f"Export engine notice: {err}")
 
 st.markdown("---")
-st.caption("Research Analyst Bee Platform Core Engine • Standard Compliance Distribution Framework v2.0")
+st.caption("Research Analyst Bee Platform Core Engine • Standard Compliance Distribution Framework v2.5")
